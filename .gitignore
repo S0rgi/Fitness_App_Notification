@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+.vs
+venv
+# Rider
+.idea/
+
+# Logs
+*.log
+*.err.log
+*.out.log
+
+# Docker
+*.env
+docker-compose.override.yml
+**/Dockerfile.*
+
+# Python virtual environments
+venv/
+.env/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Others
+*.sqlite
+*.db
+
+*.py
