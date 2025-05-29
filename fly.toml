@@ -27,7 +27,8 @@ primary_region = "fra"
 [[services]]
   internal_port = 5672
   protocol = "tcp"
-
+  processes = ['app']
+  
   [[services.ports]]
     port = 5672
     handlers = []
@@ -38,7 +39,7 @@ primary_region = "fra"
     grace_period = "10s"
     restart_limit = 0
     port = 5672
-  processes = ['app']
+
 
 [[vm]]
   cpu_kind = 'shared'
