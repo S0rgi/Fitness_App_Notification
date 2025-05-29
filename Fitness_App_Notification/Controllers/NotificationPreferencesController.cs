@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Fitness_App_Notification.Models;
 using Fitness_App_Notification.Data;
+using Fitness_App_Notification.Grpc;
 namespace Fitness_App_Notification.Controllers;
 
 [ApiController]
@@ -17,8 +18,11 @@ public class NotificationPreferencesController : ControllerBase
 
     // GET /api/notifications/preferences?email=user@example.com
     [HttpGet]
-    public async Task<IActionResult> GetPreferences([FromQuery] string email)
+    [GrpcAuthorize]
+    public async Task<IActionResult> GetPreferences()
     {
+        var user = HttpContext.Items["User"] as UserResponse;
+        var email = user.Email;
         if (string.IsNullOrWhiteSpace(email))
             return BadRequest("Email обязателен");
 
@@ -37,8 +41,11 @@ public class NotificationPreferencesController : ControllerBase
 
     // PATCH /api/notifications/preferences?email=user@example.com
     [HttpPatch]
-    public async Task<IActionResult> UpdatePreferences([FromQuery] string email, [FromBody] UpdateNotificationPreferencesRequest request)
+    [GrpcAuthorize]
+    public async Task<IActionResult> UpdatePreferences( [FromBody] UpdateNotificationPreferencesRequest request)
     {
+        var user = HttpContext.Items["User"] as UserResponse;
+        var email = user.Email;
         if (string.IsNullOrWhiteSpace(email))
             return BadRequest("Email обязателен");
 

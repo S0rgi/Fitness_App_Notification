@@ -4,6 +4,10 @@ using Microsoft.Extensions.Options;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Fitness_App_Notification.Data;
+using Microsoft.OpenApi.Models;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
+using Fitness_App_Notification.Grpc;
 DotNetEnv.Env.Load("../.env");
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,11 +32,41 @@ builder.Services.AddHostedService<RabbitMqListener>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Fitness App Notification", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Введите JWT токен",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer" }
+            },
+            new string[] {}
+        }
+    });
+});
+// Настройка GrpcChannel
+var grpcHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
+Console.WriteLine(builder.Configuration.GetConnectionString("Grpc_Server"));
+var grpcChannel = GrpcChannel.ForAddress(builder.Configuration.GetConnectionString("Grpc_Server"), new GrpcChannelOptions
+{
+    HttpHandler = grpcHandler
+});
 
+builder.Services.AddSingleton(new UserService.UserServiceClient(grpcChannel));
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
