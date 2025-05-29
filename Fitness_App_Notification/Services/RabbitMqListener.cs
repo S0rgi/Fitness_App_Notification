@@ -10,23 +10,20 @@ namespace Fitness_App_Notification.Services;
 public class RabbitMqListener : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly RabbitMqSettings _settings;
+    private readonly string _connectionString;
     private IConnection? _connection;
     private IChannel? _channel;
 
-    public RabbitMqListener(IServiceScopeFactory scopeFactory, IOptions<RabbitMqSettings> options)
+    public RabbitMqListener(IServiceScopeFactory scopeFactory, IConfiguration configuration)
     {
         _scopeFactory = scopeFactory;
-        _settings = options.Value;
+        _connectionString = configuration.GetConnectionString("RabbitMq");
     }
-
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory
         {
-            HostName = _settings.HostName,
-            UserName = _settings.UserName,
-            Password = _settings.Password
+            Uri = new Uri(_connectionString)
         };
 
         _connection = await factory.CreateConnectionAsync();

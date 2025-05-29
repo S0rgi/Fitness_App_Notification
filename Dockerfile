@@ -1,33 +1,26 @@
+# --- Build Stage ---
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# Копируем проект и восстанавливаем зависимости
 COPY Fitness_App_Notification/*.csproj ./Fitness_App_Notification/
 WORKDIR /src/Fitness_App_Notification
 RUN dotnet restore
 
+# Копируем все файлы и публикуем
 COPY . .
 RUN dotnet publish -c Release -o /out
 
-# --- Runtime ---
+# --- Runtime Stage ---
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
-
-# Устанавливаем RabbitMQ и supervisord
-RUN apt-get update && apt-get install -y netcat-openbsd
-
-RUN apt-get update && \
-    apt-get install -y \
-    rabbitmq-server \
-    supervisor
 
 # Рабочая директория
 WORKDIR /app
 
-# Копируем билд .NET-приложения
-COPY --from=build /out /app
+# Копируем опубликованные файлы
+COPY --from=build /out ./
 
-# Копируем конфиг supervisord
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Открываем порт 8080
+EXPOSE 8080
 
-EXPOSE 8080 5672 15672
-
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+ENTRYPOINT ["dotnet", "Fitness_App_Notification.dll"]

@@ -4,42 +4,13 @@ primary_region = "fra"
 [build]
 
 # HTTP сервис Notification API
-[[services]]
+[http_service]
   internal_port = 8080
-  protocol = "tcp"
-
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-  [[services.tcp_checks]]
-    interval = 10000
-    timeout = 2000
-    grace_period = "10s"
-    restart_limit = 0
-    port = 8080
-
-# RabbitMQ - внешний доступ по 5672
-[[services]]
-  internal_port = 5672
-  protocol = "tcp"
-  processes = ['app']
-  
-  [[services.ports]]
-    port = 5672
-    handlers = []
-
-  [[services.tcp_checks]]
-    interval = 10000
-    timeout = 2000
-    grace_period = "10s"
-    restart_limit = 0
-    port = 5672
-
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = "stop"
+  min_machines_running = 0
+  processes = ["app"]
 
 [[vm]]
   cpu_kind = 'shared'

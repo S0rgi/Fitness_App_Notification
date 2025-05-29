@@ -27,8 +27,7 @@ builder.Services.AddSingleton<EmailSender>(sp =>
 builder.Services.AddDbContext<NotificationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<NotificationProcessor>();
-builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMq"));
-builder.Services.AddHostedService<RabbitMqListener>();
+builder.Services.AddHostedService<RabbitMqListener>(); 
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -56,13 +55,13 @@ builder.Services.AddSwaggerGen(c =>
 });
 // Настройка GrpcChannel
 var grpcHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
-Console.WriteLine(builder.Configuration.GetConnectionString("Grpc_Server"));
 var grpcChannel = GrpcChannel.ForAddress(builder.Configuration.GetConnectionString("Grpc_Server"), new GrpcChannelOptions
 {
     HttpHandler = grpcHandler
 });
 
 builder.Services.AddSingleton(new UserService.UserServiceClient(grpcChannel));
+builder.WebHost.UseUrls("http://0.0.0.0:8080");
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
