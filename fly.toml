@@ -1,5 +1,5 @@
-app = "notification-service"
-primary_region = "ams" # если другой регион — замени
+app = "fitness-app-notification"
+primary_region = "fra"
 
 [build]
   dockerfile = "Dockerfile"
