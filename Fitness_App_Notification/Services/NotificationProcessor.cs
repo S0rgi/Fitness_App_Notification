@@ -80,7 +80,6 @@ private (string subject, string body)? FormatEmail(NotificationMessage msg, Noti
         case "friend_response":
             if (!pref.FriendResponse) return null;
             subject = "Уведомление от Fitness App";
-
             if (TryParseFriendshipStatus(msg.Action, out var friendStatus))
             {
                 body += friendStatus switch
@@ -105,7 +104,6 @@ private (string subject, string body)? FormatEmail(NotificationMessage msg, Noti
         case "challenge_response":
             if (!pref.ChallengeResponse) return null;
             subject = "Новый вызов в Fitness App";
-
             if (TryParseChallengeStatus(msg.Action, out var challengeStatus))
             {
                 body += challengeStatus switch
@@ -123,6 +121,13 @@ private (string subject, string body)? FormatEmail(NotificationMessage msg, Noti
             }
             break;
 
+        case "code":
+            // Тут можно вообще не проверять преференции, если это системная рассылка
+            subject = "Ваш код подтверждения";
+            body += $"Ваш код подтверждения: {msg.Action ?? "не указан"}.\n" +
+                    $"Введите его в приложении, чтобы завершить авторизацию.";
+            break;
+
         default:
             subject = "Уведомление от Fitness App";
             body += "У вас новое уведомление.";
@@ -130,9 +135,9 @@ private (string subject, string body)? FormatEmail(NotificationMessage msg, Noti
     }
 
     body += "\n\nFitness App";
-
     return (subject, body);
 }
+
 
     private bool TryParseFriendshipStatus(string? action, out FriendshipStatus status)
     {

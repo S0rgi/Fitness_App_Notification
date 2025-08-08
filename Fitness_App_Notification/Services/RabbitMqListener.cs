@@ -19,6 +19,7 @@ public class RabbitMqListener : BackgroundService
         _scopeFactory = scopeFactory;
         _connectionString = configuration.GetConnectionString("RabbitMq");
     }
+
     public override async Task StartAsync(CancellationToken cancellationToken)
     {
         var factory = new ConnectionFactory
@@ -29,34 +30,46 @@ public class RabbitMqListener : BackgroundService
         _connection = await factory.CreateConnectionAsync();
         _channel = await _connection.CreateChannelAsync();
 
-        await _channel.QueueDeclareAsync(
-            queue: "notifications",
-            durable: false,
-            exclusive: false,
-            autoDelete: false,
-            arguments: null
-        );
+        // Объявляем обе очереди
+        await _channel.QueueDeclareAsync("notifications", durable: false, exclusive: false, autoDelete: false, arguments: null);
+        await _channel.QueueDeclareAsync("code", durable: false, exclusive: false, autoDelete: false, arguments: null);
 
-        Console.WriteLine(" [*] Подключение к очереди установлено. Ожидаю сообщения...");
+        Console.WriteLine(" [*] Подключение к очередям notifications и code установлено. Ожидаю сообщения...");
 
         await base.StartAsync(cancellationToken);
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var consumer = new AsyncEventingBasicConsumer(_channel);
-        consumer.ReceivedAsync += async (model, ea) =>
+        // Консьюмер для notifications
+        var notificationsConsumer = new AsyncEventingBasicConsumer(_channel);
+        notificationsConsumer.ReceivedAsync += async (model, ea) =>
         {
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
-            Console.WriteLine($" [x] Получено сообщение: {message}");
+            Console.WriteLine($" [x] Получено сообщение из 'notifications': {message}");
 
             using var scope = _scopeFactory.CreateScope();
             var processor = scope.ServiceProvider.GetRequiredService<NotificationProcessor>();
             await processor.HandleMessageAsync(message);
         };
 
-        _channel.BasicConsumeAsync(queue: "notifications", autoAck: true, consumer: consumer);
+        // Консьюмер для code
+        var codeConsumer = new AsyncEventingBasicConsumer(_channel);
+        codeConsumer.ReceivedAsync += async (model, ea) =>
+        {
+            var body = ea.Body.ToArray();
+            var message = Encoding.UTF8.GetString(body);
+            Console.WriteLine($" [x] Получено сообщение из 'code': {message}");
+
+            using var scope = _scopeFactory.CreateScope();
+            var processor = scope.ServiceProvider.GetRequiredService<NotificationProcessor>();
+            await processor.HandleMessageAsync(message); // Можно создать отдельный метод, если логика отличается
+        };
+
+        // Подписка на очереди
+        _channel.BasicConsumeAsync(queue: "notifications", autoAck: true, consumer: notificationsConsumer);
+        _channel.BasicConsumeAsync(queue: "code", autoAck: true, consumer: codeConsumer);
 
         return Task.CompletedTask;
     }
