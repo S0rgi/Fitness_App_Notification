@@ -8,6 +8,8 @@ using Microsoft.OpenApi.Models;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Fitness_App_Notification.Grpc;
+using Fitness_App_Notification.Services.Interfaces;
+
 DotNetEnv.Env.Load("../.env");
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +30,7 @@ builder.Services.AddDbContext<NotificationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<NotificationProcessor>();
 builder.Services.AddHostedService<RabbitMqListener>(); 
+builder.Services.AddScoped<INotificationPreferencesService, NotificationPreferencesService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
