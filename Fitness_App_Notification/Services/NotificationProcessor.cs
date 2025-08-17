@@ -1,68 +1,51 @@
 ﻿using Newtonsoft.Json;
 using Fitness_App_Notification.Models;
 using Microsoft.EntityFrameworkCore;
-namespace Fitness_App_Notification.Services;
-
 using Fitness_App_Notification.Data;
+using Fitness_App_Notification.Services.Interfaces;
+
+namespace Fitness_App_Notification.Services;
 
 public class NotificationProcessor
 {
     private readonly EmailSender _emailSender;
-    private readonly NotificationDbContext _dbContext;
+    private readonly INotificationPreferencesService _notificationPreferencesService;
 
-    public NotificationProcessor(EmailSender emailSender, NotificationDbContext dbContext)
+    public NotificationProcessor(EmailSender emailSender, INotificationPreferencesService notificationPreferencesService)
     {
         _emailSender = emailSender;
-        _dbContext = dbContext;
+        _notificationPreferencesService = notificationPreferencesService;
     }
 
-public async Task HandleMessageAsync(string json)
-{
-    try
+    public async Task HandleMessageAsync(string json)
     {
-        var notification = JsonConvert.DeserializeObject<NotificationMessage>(json);
-        if (notification == null)
+        try
         {
-            Console.WriteLine(" [!] Пустое или некорректное сообщение");
-            return;
+            var notification = JsonConvert.DeserializeObject<NotificationMessage>(json);
+            if (notification == null)
+            {
+                Console.WriteLine(" [!] Пустое или некорректное сообщение");
+                return;
+            }
+
+            var preferences = await _notificationPreferencesService.GetOrCreatePreferencesAsync(notification.RecipientEmail);
+
+            var formatted = FormatEmail(notification, preferences);
+            if (formatted == null)
+            {
+                Console.WriteLine($" [x] Уведомление \'{notification.Type}\' не отправлено — отключено у {notification.RecipientEmail}");
+                return;
+            }
+
+            var (subject, body) = formatted.Value;
+            await _emailSender.SendEmailAsync(notification.RecipientEmail, subject, body);
+            Console.WriteLine($" [x] Email отправлен на {notification.RecipientEmail}");
         }
-
-        var preferences = await GetOrCreatePreferences(notification.RecipientEmail);
-
-        var formatted = FormatEmail(notification, preferences);
-        if (formatted == null)
+        catch (Exception ex)
         {
-            Console.WriteLine($" [x] Уведомление '{notification.Type}' не отправлено — отключено у {notification.RecipientEmail}");
-            return;
+            Console.WriteLine($" [!] Ошибка обработки сообщения: {ex.Message}");
         }
-
-        var (subject, body) = formatted.Value;
-        await _emailSender.SendEmailAsync(notification.RecipientEmail, subject, body);
-        Console.WriteLine($" [x] Email отправлен на {notification.RecipientEmail}");
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($" [!] Ошибка обработки сообщения: {ex.Message}");
-    }
-}
-
-
-    private async Task<NotificationPreferences> GetOrCreatePreferences(string email)
-    {
-        var pref = await _dbContext.Preferences
-            .FirstOrDefaultAsync(p => p.Email == email);
-
-        if (pref == null)
-        {
-            pref = new NotificationPreferences { Email = email };
-            _dbContext.Preferences.Add(pref);
-            await _dbContext.SaveChangesAsync();
-            Console.WriteLine($" [+] Настройки по умолчанию созданы для {email}");
-        }
-
-        return pref;
-    }
-
 
 private (string subject, string body)? FormatEmail(NotificationMessage msg, NotificationPreferences pref)
 {
