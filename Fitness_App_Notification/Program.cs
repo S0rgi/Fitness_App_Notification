@@ -29,14 +29,14 @@ builder.Services.AddSingleton<EmailSender>(sp =>
 builder.Services.AddDbContext<NotificationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<NotificationProcessor>();
-builder.Services.AddHostedService<RabbitMqListener>(); 
+builder.Services.AddHostedService<RabbitMqListener>();
 builder.Services.AddScoped<INotificationPreferencesService, NotificationPreferencesService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    
+
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Fitness App Notification", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -58,13 +58,17 @@ builder.Services.AddSwaggerGen(c =>
 });
 // Настройка GrpcChannel
 var grpcHandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
-var grpcChannel = GrpcChannel.ForAddress(builder.Configuration.GetConnectionString("Grpc_Server"), new GrpcChannelOptions
-{
-    HttpHandler = grpcHandler
+var grpcChannel = GrpcChannel.ForAddress(
+    builder.Configuration.GetConnectionString("Grpc_Server"),
+    new GrpcChannelOptions
+    {
+        HttpHandler = grpcHandler,
+        HttpVersion = new Version(1, 1),
+        HttpVersionPolicy = HttpVersionPolicy.RequestVersionExact
 });
 
 builder.Services.AddSingleton(new UserService.UserServiceClient(grpcChannel));
-builder.WebHost.UseUrls("http://0.0.0.0:8080");
+builder.WebHost.UseUrls("http://0.0.0.0:8082");
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
